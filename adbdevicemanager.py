@@ -163,3 +163,69 @@ class AdbDeviceManager:
         else:
             result = "\n\n".join(clickable_elements)
             return result
+
+    def get_network_traffic(self) -> str:
+        """Gets overall network traffic statistics from the device.
+        
+        Returns:
+            str: A formatted string containing network traffic information
+        """
+        try:
+            # Get general network stats
+            netstats_output = self.device.shell("dumpsys netstats | grep -E 'iface=|uid=' | head -50")
+            
+            # Get active network interfaces
+            active_ifaces = self.device.shell("dumpsys connectivity | grep -E 'type: WIFI|type: MOBILE' | head -10")
+            
+            # Format the output
+            result = "=== NETWORK TRAFFIC INFORMATION ===\n\n"
+            result += "== ACTIVE INTERFACES ==\n"
+            result += active_ifaces + "\n\n"
+            result += "== TRAFFIC STATISTICS ==\n"
+            result += netstats_output
+            
+            return result
+        except Exception as e:
+            return f"Error retrieving network traffic information: {str(e)}"
+
+    def get_app_network_usage(self, package_name=None, uid=None) -> str:
+        """Gets network usage information for a specific app or all apps.
+        
+        Args:
+            package_name (str, optional): The package name of the app to query.
+            uid (str, optional): The UID of the app to query.
+            
+        Returns:
+            str: A formatted string containing app network usage information
+        """
+        try:
+            result = "=== APP NETWORK USAGE ===\n\n"
+            
+            # If no specific package or UID provided, list all apps with their UIDs
+            if not package_name and not uid:
+                # Get all packages with network usage permissions
+                netpolicy_output = self.device.shell("dumpsys netpolicy | grep -E 'UID='")
+                result += "== APPS WITH NETWORK POLICIES ==\n"
+                result += netpolicy_output + "\n\n"
+                
+                # Get top network usage consumers
+                top_consumers = self.device.shell("dumpsys netstats | grep -E 'package=' | head -20")
+                result += "== TOP NETWORK CONSUMERS ==\n"
+                result += top_consumers
+                
+                return result
+            
+            # Get specific app's info
+            uid_filter = f"uid={uid}" if uid else ""
+            package_filter = f"package={package_name}" if package_name else ""
+            grep_filter = uid_filter or package_filter
+            
+            # Get app network stats
+            if grep_filter:
+                detail_stats = self.device.shell(f"dumpsys netstats detail | grep -A 30 '{grep_filter}' | grep -v 'uid=[0-9]\\{{5\\}}' | head -50")
+                result += f"== DETAILED NETWORK STATS FOR {package_name or f'UID {uid}'} ==\n"
+                result += detail_stats
+            
+            return result
+        except Exception as e:
+            return f"Error retrieving app network usage information: {str(e)}"

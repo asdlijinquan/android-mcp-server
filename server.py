@@ -80,5 +80,30 @@ def get_package_action_intents(package_name: str) -> list[str]:
     return result
 
 
+@mcp.tool()
+def get_network_traffic() -> str:
+    """
+    Get overall network traffic statistics from the device
+    Returns:
+        str: A formatted string containing network traffic information
+    """
+    result = deviceManager.get_network_traffic()
+    return result
+
+
+@mcp.tool()
+def get_app_network_usage(package_name: str = None, uid: str = None) -> str:
+    """
+    Get network usage information for a specific app or all apps
+    Args:
+        package_name (str, optional): The package name of the app to query
+        uid (str, optional): The UID of the app to query
+    Returns:
+        str: A formatted string containing app network usage information
+    """
+    result = deviceManager.get_app_network_usage(package_name, uid)
+    return result
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
